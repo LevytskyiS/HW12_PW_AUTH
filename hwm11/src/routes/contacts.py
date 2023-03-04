@@ -19,6 +19,10 @@ allowed_get_contact_by_id = RolesChecker([Roles.admin, Roles.moderator, Roles.us
 allowed_update_contact = RolesChecker([Roles.admin, Roles.moderator])
 allowed_change_contact_role = RolesChecker([Roles.admin, Roles.moderator])
 allowed_delete_contact = RolesChecker([Roles.admin])
+allowed_search_first_name = RolesChecker([Roles.admin, Roles.moderator, Roles.user])
+allowed_search_last_name = RolesChecker([Roles.admin, Roles.moderator, Roles.user])
+allowed_search_email = RolesChecker([Roles.admin, Roles.moderator, Roles.user])
+allowed_search = RolesChecker([Roles.admin, Roles.moderator, Roles.user])
 
 
 @router.post(
@@ -35,6 +39,7 @@ async def create_contact(body: ContactModel, db: Session = Depends(get_db)):
             status_code=status.HTTP_409_CONFLICT,
             detail="Such mail already registered",
         )
+    body.password = auth_service.get_password_hash(body.password)
     contact = await repository_contacts.create_contact(body, db)
     return {"contact": contact, "detail": "Contact was created"}
 
@@ -128,6 +133,7 @@ async def delete_contact(
     "/search_first_name/{inquiry}",
     response_model=List[ContactDb],
     name="Search by first name",
+    dependencies=[Depends(allowed_search_first_name)],
 )
 async def search_first_name(
     inquiry: str = Path(min_length=1),
@@ -144,6 +150,7 @@ async def search_first_name(
     "/search_last_name/{inquiry}",
     response_model=List[ContactDb],
     name="Search by last name",
+    dependencies=[Depends(allowed_search_last_name)],
 )
 async def search_last_name(
     inquiry: str = Path(min_length=1),
@@ -160,6 +167,7 @@ async def search_last_name(
     "/search_mail/{inquiry}",
     response_model=ContactDb,
     name="Search by email",
+    dependencies=[Depends(allowed_search_email)],
 )
 async def search_email(
     inquiry: str = Path(min_length=1),
@@ -167,6 +175,23 @@ async def search_email(
     current_contact: Contact = Depends(auth_service.get_current_user),
 ):
     contacts = await repository_contacts.search_by_mail(inquiry, db)
+    if bool(contacts) == False:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+    return contacts
+
+
+@router.get(
+    "/search/{inquiry}",
+    response_model=List[ContactDb],
+    name="Search",
+    dependencies=[Depends(allowed_search)],
+)
+async def search(
+    inquiry: str = Path(min_length=1),
+    db: Session = Depends(get_db),
+    current_contact: Contact = Depends(auth_service.get_current_user),
+):
+    contacts = await repository_contacts.search_by_mail_ilike_method(inquiry, db)
     if bool(contacts) == False:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
     return contacts

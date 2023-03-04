@@ -86,3 +86,8 @@ async def search_last_name(inquiry: str, db: Session = Depends(get_db)):
 async def search_by_mail(inquiry: str, db: Session = Depends(get_db)):
     contacts = db.query(Contact).filter_by(email=inquiry).first()
     return contacts
+
+
+async def search_by_mail_ilike_method(inquiry: str, db: Session = Depends(get_db)):
+    contacts = db.query(Contact).filter(Contact.email.ilike(f"%{inquiry}%")).all()
+    return contacts

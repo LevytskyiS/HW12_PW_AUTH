@@ -12,7 +12,7 @@ class ContactModel(BaseModel):
 
 
 class UpdateContactRoleModel(BaseModel):
-    roles: str = Field("'user', 'moderator' or 'admin'")
+    roles: str = Field("user")
 
 
 class ContactDb(BaseModel):
